@@ -104,3 +104,37 @@
         ERR-NOT-AUTHORIZED
     ))
 )
+
+(define-public (vote (proposal-id uint) (vote-for bool))
+    (let (
+        (proposal (unwrap! (get-proposal proposal-id) ERR-PROPOSAL-NOT-FOUND))
+        (user-stake (get amount (get-user-stake tx-sender)))
+        (vote-record (map-get? votes { proposal-id: proposal-id, voter: tx-sender }))
+    )
+    (asserts! (>= user-stake u0) ERR-NOT-AUTHORIZED)
+    (asserts! (is-none vote-record) ERR-ALREADY-VOTED)
+    (asserts!
+        (<= (- block-height (get created-at proposal)) VOTING_PERIOD)
+        ERR-VOTING-ENDED
+    )
+
+    (map-set votes
+        { proposal-id: proposal-id, voter: tx-sender }
+        { vote: vote-for }
+    )
+
+    (map-set proposals
+        { proposal-id: proposal-id }
+        (merge proposal {
+            votes-for: (if vote-for
+                (+ (get votes-for proposal) u1)
+                (get votes-for proposal)
+            ),
+            votes-against: (if (not vote-for)
+                (+ (get votes-against proposal) u1)
+                (get votes-against proposal)
+            )
+        })
+    )
+    (ok true))
+)
