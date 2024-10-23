@@ -76,3 +76,31 @@
         ERR-INVALID-AMOUNT
     ))
 )
+
+(define-public (create-proposal (title (string-ascii 50)) (description (string-ascii 500)) (amount uint) (recipient principal))
+    (let (
+        (proposal-id (+ (var-get proposal-counter) u1))
+        (user-stake (get amount (get-user-stake tx-sender)))
+    )
+    (if (>= user-stake MIN_PROPOSAL_AMOUNT)
+        (begin
+            (map-set proposals
+                { proposal-id: proposal-id }
+                {
+                    creator: tx-sender,
+                    title: title,
+                    description: description,
+                    amount: amount,
+                    votes-for: u0,
+                    votes-against: u0,
+                    status: "active",
+                    created-at: block-height,
+                    recipient: recipient
+                }
+            )
+            (var-set proposal-counter proposal-id)
+            (ok proposal-id)
+        )
+        ERR-NOT-AUTHORIZED
+    ))
+)
