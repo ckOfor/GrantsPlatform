@@ -26,3 +26,33 @@
         recipient: principal
     }
 )
+
+(define-map votes
+    { proposal-id: uint, voter: principal }
+    { vote: bool }
+)
+
+(define-map user-stakes
+    { user: principal }
+    { amount: uint }
+)
+
+;; Data Variables
+(define-data-var proposal-counter uint u0)
+(define-data-var treasury-balance uint u0)
+
+;; Read-only functions
+(define-read-only (get-proposal (proposal-id uint))
+    (map-get? proposals { proposal-id: proposal-id })
+)
+
+(define-read-only (get-user-stake (user principal))
+    (default-to
+        { amount: u0 }
+        (map-get? user-stakes { user: user })
+    )
+)
+
+(define-read-only (get-treasury-balance)
+    (var-get treasury-balance)
+)
