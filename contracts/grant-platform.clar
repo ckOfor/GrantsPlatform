@@ -138,3 +138,36 @@
     )
     (ok true))
 )
+
+(define-public (execute-proposal (proposal-id uint))
+    (let (
+        (proposal (unwrap! (get-proposal proposal-id) ERR-PROPOSAL-NOT-FOUND))
+        (total-votes (+ (get votes-for proposal) (get votes-against proposal)))
+        (approval-percentage (* (get votes-for proposal) u1000 (/ total-votes)))
+    )
+    (asserts!
+        (>= (- block-height (get created-at proposal)) VOTING_PERIOD)
+        ERR-VOTING-ENDED
+    )
+    (if (and
+            (>= approval-percentage (* QUORUM_THRESHOLD u10))
+            (>= (var-get treasury-balance) (get amount proposal))
+        )
+        (begin
+            (try! (as-contract (stx-transfer? (get amount proposal) tx-sender (get recipient proposal))))
+            (var-set treasury-balance (- (var-get treasury-balance) (get amount proposal)))
+            (map-set proposals
+                { proposal-id: proposal-id }
+                (merge proposal { status: "executed" })
+            )
+            (ok true)
+        )
+        (begin
+            (map-set proposals
+                { proposal-id: proposal-id }
+                (merge proposal { status: "rejected" })
+            )
+            (ok false)
+        )
+    ))
+)
