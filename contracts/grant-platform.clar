@@ -56,3 +56,23 @@
 (define-read-only (get-treasury-balance)
     (var-get treasury-balance)
 )
+
+;; Public functions
+(define-public (stake-tokens (amount uint))
+    (let (
+        (current-stake (get-user-stake tx-sender))
+        (new-amount (+ amount (get amount current-stake)))
+    )
+    (if (>= amount MIN_PROPOSAL_AMOUNT)
+        (begin
+            (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
+            (var-set treasury-balance (+ (var-get treasury-balance) amount))
+            (map-set user-stakes
+                { user: tx-sender }
+                { amount: new-amount }
+            )
+            (ok true)
+        )
+        ERR-INVALID-AMOUNT
+    ))
+)
